@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANGEL HOME</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0a0a1f; color: #fff; margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, #6b00ff, #ff00c8); padding: 25px; text-align: center; }
+        .logo { font-size: 32px; font-weight: bold; }
+        .container { padding: 20px; max-width: 900px; margin: auto; }
+        .match { background: #1a1a2e; margin: 15px 0; padding: 20px; border-radius: 15px; }
+        button { background: #8e2de2; color: white; border: none; padding: 14px 20px; margin: 6px; border-radius: 10px; font-size: 16px; cursor: pointer; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: none; font-size: 16px; }
+        .balance { font-size: 24px; color: #00ff9d; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">👼 ANGEL HOME</div>
+        <p>Paris Sportifs - Simulation</p>
+    </header>
+
+    <div class="container">
+        <h2>Créer un compte</h2>
+        <input type="text" id="reg_username" placeholder="Nom d'utilisateur">
+        <input type="email" id="reg_email" placeholder="Email">
+        <input type="password" id="reg_password" placeholder="Mot de passe">
+        <button onclick="register()">Créer le compte</button>
+
+        <hr>
+
+        <h2>Connexion</h2>
+        <input type="text" id="login_username" placeholder="Nom d'utilisateur">
+        <button onclick="login()">Se connecter</button>
+
+        <div id="user-panel" style="display: none; margin-top: 20px;">
+            <h3>Bienvenue <span id="username-display"></span></h3>
+            <p class="balance">Solde : <span id="balance">100</span> €</p>
+            <button onclick="addMoney()">Ajouter 50€ fictifs</button>
+        </div>
+
+        <h2>Matchs disponibles</h2>
+        <div id="matches-list"></div>
+
+        <h2>Mes paris</h2>
+        <div id="bets-list"></div>
+    </div>
+
+    <script>
+        const API = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : '';
+        let currentUser = null;
+
+        async function register() {
+            const username = document.getElementById('reg_username').value;
+            const email = document.getElementById('reg_email').value;
+            const password = document.getElementById('reg_password').value;
+            if (!username) return alert("Nom d'utilisateur requis");
+
+            const res = await fetch(`${API}/register?username=${username}&email=${email}&password=${password}`, {method: 'POST'});
+            const data = await res.json();
+            alert(data.message);
+        }
+
+        async function login() {
+            currentUser = document.getElementById('login_username').value;
+            if (!currentUser) return alert("Entre ton nom d'utilisateur");
+            
+            document.getElementById('user-panel').style.display = 'block';
+            document.getElementById('username-display').textContent = currentUser;
+            loadMatches();
+            loadUser();
+        }
+
+        async function loadUser() {
+            const res = await fetch(`${API}/user/${currentUser}`);
+            const user = await res.json();
+            document.getElementById('balance').textContent = user.balance;
+        }
+
+        async function addMoney() {
+            alert("50€ fictifs ajoutés !");
+            loadUser();
+        }
+
+        async function loadMatches() {
+            const res = await fetch(`${API}/matches`);
+            const matches = await res.json();
+            let html = '';
+            matches.forEach(m => {
+                html += `
+                <div class="match">
+                    <strong>${m.home} vs ${m.away}</strong> - ${m.time}<br><br>
+                    <button onclick="placeBet(${m.id}, 'home', ${m.cote_home})">1 (${m.cote_home})</button>
+                    <button onclick="placeBet(${m.id}, 'draw', ${m.cote_draw})">N (${m.cote_draw})</button>
+                    <button onclick="placeBet(${m.id}, 'away', ${m.cote_away})">2 (${m.cote_away})</button>
+                </div>`;
+            });
+            document.getElementById('matches-list').innerHTML = html;
+        }
+
+        async function placeBet(matchId, choice, cote) {
+            if (!currentUser) return alert("Connecte-toi d'abord");
+            const amount = prompt("Montant du pari (€) ?", "10");
+            if (!amount || isNaN(amount)) return;
+
+            const res = await fetch(`${API}/bet?username=${currentUser}&match_id=${matchId}&choice=${choice}&amount=${amount}`, {method: 'POST'});
+            const data = await res.json();
+            alert(data.message);
+            loadUser();
+        }
+
+        // Charger au démarrage
+        loadMatches();
+    </script>
+</body>
+</html>
