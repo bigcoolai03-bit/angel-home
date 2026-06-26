@@ -13,7 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Données en mémoire
 users = {}
 matches = [
     {"id": 1, "home": "PSG", "away": "OM", "cote_home": 1.85, "cote_draw": 3.60, "cote_away": 4.10, "time": "21:00"},
@@ -41,7 +40,7 @@ def register(username: str, email: str, password: str):
     if username in users:
         raise HTTPException(400, "Utilisateur existe déjà")
     users[username] = {"email": email, "password": password, "balance": 100.0}
-    return {"message": "Compte créé avec succès ! Solde : 100€"}
+    return {"message": "Compte créé !", "solde": 100.0}
 
 @app.post("/bet")
 def place_bet(username: str, bet: Bet):
@@ -52,7 +51,7 @@ def place_bet(username: str, bet: Bet):
         raise HTTPException(400, "Solde insuffisant")
     user["balance"] -= bet.amount
     bets.append({"user": username, **bet.dict(), "time": datetime.now().strftime("%H:%M")})
-    return {"message": "Pari placé !", "nouveau_solde": round(user["balance"], 2)}
+    return {"message": "Pari placé avec succès !", "nouveau_solde": round(user["balance"], 2)}
 
 @app.get("/user/{username}")
 def get_user(username: str):
